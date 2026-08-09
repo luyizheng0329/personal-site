@@ -1,5 +1,5 @@
 // src/components/home/CyberHub.tsx
-// 首页赛博朋克中枢 v2 —— 拟物图标 + 电流爆发 + 音效
+// 首页赛博朋克中枢 v3 —— 拟物大图标 + 电流中心爆发 + 强闪光 + 音效
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ACTIVE_MODULES } from '../../lib/colors';
@@ -7,9 +7,9 @@ import { MODULE_ICONS } from './ModuleIcons';
 import { playElectricZap, playElectricHum } from './ElectricSound';
 
 // ============================================================
-// 粒子场（保留，微调）
+// 粒子场
 // ============================================================
-const PARTICLE_COUNT = 600;
+const PARTICLE_COUNT = 500;
 
 function generateParticles(count: number) {
   return Array.from({ length: count }, () => ({
@@ -69,7 +69,7 @@ function ParticleField() {
 }
 
 // ============================================================
-// 闪电式电流 —— 从核心劈向目标
+// 闪电从中心劈向目标节点
 // ============================================================
 function LightningBolt({
   color,
@@ -82,12 +82,15 @@ function LightningBolt({
   targetDist: number;
   isVisible: boolean;
 }) {
-  const boltRef = useRef<SVGPathElement>(null);
+  const [boltKey, setBoltKey] = useState(0);
+  const pathDRef = useRef('');
 
-  // 生成锯齿状闪电路径
-  const generateBoltPath = useCallback(() => {
-    const segments = 6;
-    const points: [number, number][] = [[50, 50]]; // 从中心开始
+  // 每次 isVisible 变成 true 时重新生成路径
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const segments = 8;
+    const points: [number, number][] = [[50, 50]];
     const endX = 50 + Math.cos(targetAngle) * targetDist;
     const endY = 50 + Math.sin(targetAngle) * targetDist;
 
@@ -95,77 +98,85 @@ function LightningBolt({
       const t = i / segments;
       const baseX = 50 + (endX - 50) * t;
       const baseY = 50 + (endY - 50) * t;
-      // 随机偏移
-      const jitter = (1 - Math.abs(t - 0.5) * 2) * 6; // 中间偏移最大
+      const jitter = (1 - Math.abs(t - 0.5) * 2) * 8;
       const perpAngle = targetAngle + Math.PI / 2;
       const offset = (Math.random() - 0.5) * jitter * 2;
       points.push([baseX + Math.cos(perpAngle) * offset, baseY + Math.sin(perpAngle) * offset]);
     }
     points.push([endX, endY]);
 
-    // 平滑连接
     let d = `M ${points[0]![0]} ${points[0]![1]}`;
     for (let i = 1; i < points.length; i++) {
       const prev = points[i - 1]!;
       const curr = points[i]!;
-      const cpx = (prev[0] + curr[0]) / 2 + (Math.random() - 0.5) * 1;
-      const cpy = (prev[1] + curr[1]) / 2 + (Math.random() - 0.5) * 1;
+      const cpx = (prev[0] + curr[0]) / 2 + (Math.random() - 0.5) * 3;
+      const cpy = (prev[1] + curr[1]) / 2 + (Math.random() - 0.5) * 3;
       d += ` Q ${cpx} ${cpy} ${curr[0]} ${curr[1]}`;
     }
-    return d;
-  }, [targetAngle, targetDist]);
-
-  const [pathD, setPathD] = useState('');
-  const [branches, setBranches] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!isVisible) {
-      setPathD('');
-      setBranches([]);
-      return;
-    }
-
-    const main = generateBoltPath();
-    setPathD(main);
-
-    // 生成分支闪电
-    const branchCount = 3;
-    const bs: string[] = [];
-    for (let i = 0; i < branchCount; i++) {
-      const t = 0.3 + Math.random() * 0.4;
-      const bx = 50 + (50 + Math.cos(targetAngle) * targetDist - 50) * t;
-      const by = 50 + (50 + Math.sin(targetAngle) * targetDist - 50) * t;
-      const branchAngle = targetAngle + (Math.random() - 0.5) * 1.2;
-      const branchLen = 5 + Math.random() * 8;
-      const ex = bx + Math.cos(branchAngle) * branchLen;
-      const ey = by + Math.sin(branchAngle) * branchLen;
-      bs.push(`M ${bx} ${by} Q ${(bx + ex) / 2 + (Math.random() - 0.5) * 2} ${(by + ey) / 2 + (Math.random() - 0.5) * 2} ${ex} ${ey}`);
-    }
-    setBranches(bs);
-  }, [isVisible, targetAngle, targetDist, generateBoltPath]);
+    pathDRef.current = d;
+    setBoltKey((k) => k + 1);
+  }, [isVisible, targetAngle, targetDist]);
 
   if (!isVisible) return null;
 
   return (
-    <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }} viewBox="0 0 100 100">
-      {/* 主轴闪电 —— 三层：粗辉光 + 细白光 + 彩光 */}
-      <path d={pathD} fill="none" stroke={color} strokeWidth="1.8" opacity="0.25"
-        filter="url(#boltGlow)" />
-      <path d={pathD} fill="none" stroke="#fff" strokeWidth="0.6" opacity="0.9" />
-      <path d={pathD} fill="none" stroke={color} strokeWidth="1" opacity="0.7" />
-      {/* 分支 */}
-      {branches.map((b, i) => (
-        <g key={i}>
-          <path d={b} fill="none" stroke={color} strokeWidth="0.6" opacity="0.2"
-            filter="url(#boltGlow)" />
-          <path d={b} fill="none" stroke={color} strokeWidth="0.3" opacity="0.5" />
-        </g>
-      ))}
+    <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 6 }} viewBox="0 0 100 100" key={boltKey}>
       <defs>
         <filter id="boltGlow">
-          <feGaussianBlur stdDeviation="1.5" />
+          <feGaussianBlur stdDeviation="2" />
+        </filter>
+        <filter id="boltGlowWide">
+          <feGaussianBlur stdDeviation="5" />
         </filter>
       </defs>
+
+      {/* 中心爆发闪光 */}
+      <circle cx="50" cy="50" r="5" fill="#fff" opacity="0.9">
+        <animate attributeName="r" from="3" to="12" dur="0.3s" fill="freeze" />
+        <animate attributeName="opacity" from="0.9" to="0" dur="0.3s" fill="freeze" />
+      </circle>
+      <circle cx="50" cy="50" r="8" fill={color} opacity="0.5" filter="url(#boltGlowWide)">
+        <animate attributeName="r" from="5" to="18" dur="0.4s" fill="freeze" />
+        <animate attributeName="opacity" from="0.5" to="0" dur="0.4s" fill="freeze" />
+      </circle>
+
+      {/* 目标节点闪光 */}
+      <circle
+        cx={50 + Math.cos(targetAngle) * targetDist}
+        cy={50 + Math.sin(targetAngle) * targetDist}
+        r="6" fill="#fff" opacity="0">
+        <animate attributeName="opacity" values="0;0.9;0" dur="0.5s" begin="0.15s" fill="freeze" />
+        <animate attributeName="r" values="3;12;3" dur="0.5s" begin="0.15s" fill="freeze" />
+      </circle>
+
+      {/* 主轴闪电：粗辉光 */}
+      <path d={pathDRef.current} fill="none" stroke={color} strokeWidth="2.5" opacity="0.3"
+        filter="url(#boltGlowWide)" />
+      {/* 主轴闪电：中辉光 */}
+      <path d={pathDRef.current} fill="none" stroke={color} strokeWidth="1.5" opacity="0.5"
+        filter="url(#boltGlow)" />
+      {/* 主轴闪电：白芯 */}
+      <path d={pathDRef.current} fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.95" />
+      {/* 主轴闪电：彩光 */}
+      <path d={pathDRef.current} fill="none" stroke={color} strokeWidth="1.2" opacity="0.8" />
+
+      {/* 分支闪电 */}
+      {[0.35, 0.55, 0.7].map((t, i) => {
+        const bx = 50 + (50 + Math.cos(targetAngle) * targetDist - 50) * t;
+        const by = 50 + (50 + Math.sin(targetAngle) * targetDist - 50) * t;
+        const branchAngle = targetAngle + (i % 2 === 0 ? 0.6 : -0.5);
+        const branchLen = 7 + i * 3;
+        const ex = bx + Math.cos(branchAngle) * branchLen;
+        const ey = by + Math.sin(branchAngle) * branchLen;
+        const d = `M ${bx} ${by} Q ${(bx + ex) / 2} ${(by + ey) / 2} ${ex} ${ey}`;
+        return (
+          <g key={i}>
+            <path d={d} fill="none" stroke={color} strokeWidth="0.7" opacity="0.2"
+              filter="url(#boltGlow)" />
+            <path d={d} fill="none" stroke="#fff" strokeWidth="0.3" opacity="0.5" />
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -195,51 +206,74 @@ function ModuleNode({
   const Icon = MODULE_ICONS[modKey] || MODULE_ICONS.photos!;
   const cx = 50 + Math.cos(angle) * distance;
   const cy = 50 + Math.sin(angle) * distance;
-
   const [hovered, setHovered] = useState(false);
+  const lit = isActive || hovered;
 
   return (
     <div
-      className="absolute transition-all duration-700 ease-out cursor-pointer"
+      className="absolute transition-all duration-300 ease-out cursor-pointer"
       style={{
         left: `${cx}%`,
         top: `${cy}%`,
-        transform: `translate(-50%, -50%) ${isActive ? 'scale(1.15)' : hovered ? 'scale(1.05)' : 'scale(1)'}`,
+        transform: `translate(-50%, -50%) ${isActive ? 'scale(1.2)' : hovered ? 'scale(1.08)' : 'scale(1)'}`,
+        zIndex: isActive ? 10 : hovered ? 5 : 3,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={(e) => {
+        e.stopPropagation();
         e.preventDefault();
-        onActivate();
+        if (!isActive) onActivate();
       }}
     >
-      {/* 基座光晕 */}
+      {/* 基座强闪光（激活时） */}
+      {isActive && (
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: '160px', height: '160px',
+            left: '50%', top: '45%',
+            transform: 'translate(-50%, -50%)',
+            background: `radial-gradient(circle, ${hex}66 0%, ${hex}22 30%, transparent 60%)`,
+            animation: 'flash-burst 0.6s ease-out forwards',
+          }}
+        />
+      )}
+
+      {/* 常驻光晕 */}
       <div
-        className="absolute rounded-full transition-all duration-500"
+        className="absolute rounded-full transition-all duration-300"
         style={{
-          width: '100px',
-          height: '100px',
-          left: '50%',
-          top: '50%',
+          width: lit ? '140px' : '90px',
+          height: lit ? '140px' : '90px',
+          left: '50%', top: '45%',
           transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${hex}22 0%, transparent 65%)`,
-          opacity: isActive ? 0.9 : hovered ? 0.5 : 0.15,
+          background: `radial-gradient(circle, ${hex}${lit ? '44' : '15'} 0%, transparent 65%)`,
+          opacity: lit ? 1 : 0.4,
         }}
       />
 
-      {/* SVG 图标 */}
-      <div className="relative flex items-center justify-center" style={{ width: 100, height: 80 }}>
-        <Icon color={hex} isActive={isActive || hovered} size={90} />
+      {/* 图标容器 */}
+      <div
+        className="relative flex items-center justify-center transition-transform duration-300"
+        style={{
+          width: 130,
+          height: 110,
+          transform: lit ? 'scale(1.1)' : 'scale(1)',
+        }}
+      >
+        <Icon color={hex} isActive={lit} size={lit ? 130 : 110} />
       </div>
 
       {/* 标签 */}
       <span
-        className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-xs font-medium whitespace-nowrap
-                   transition-all duration-300 font-display tracking-wider"
+        className="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-sm font-bold whitespace-nowrap
+                   transition-all duration-300 font-display tracking-widest"
         style={{
-          color: hex,
-          textShadow: isActive ? `0 0 12px ${hex}` : hovered ? `0 0 6px ${hex}` : 'none',
-          opacity: isActive || hovered ? 1 : 0.5,
+          color: lit ? '#fff' : hex,
+          textShadow: lit ? `0 0 20px ${hex}, 0 0 40px ${hex}, 0 0 60px ${hex}` : 'none',
+          opacity: lit ? 1 : 0.55,
+          fontSize: lit ? '1rem' : '0.8rem',
         }}
       >
         {label}
@@ -251,24 +285,24 @@ function ModuleNode({
 // ============================================================
 // 核心：旋转能量环
 // ============================================================
-function EnergyCore({ isFiring }: { isFiring: boolean }) {
+function EnergyCore({ isFiring, boltColor }: { isFiring: boolean; boltColor?: string }) {
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ zIndex: 2 }}>
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ zIndex: 2 }}>
       {/* 外层旋转光环 */}
       <div
         className="absolute rounded-full animate-spin"
         style={{
-          width: '140px', height: '140px',
+          width: '160px', height: '160px',
           left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1.5px solid rgba(255,255,255,0.05)',
           animationDuration: '25s',
         }}
       />
       <div
         className="absolute rounded-full animate-spin"
         style={{
-          width: '200px', height: '200px',
+          width: '220px', height: '220px',
           left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
           border: '1px solid rgba(255,255,255,0.03)',
@@ -277,38 +311,37 @@ function EnergyCore({ isFiring }: { isFiring: boolean }) {
         }}
       />
 
-      {/* 散逸光晕 */}
+      {/* 发射态外扩光晕 */}
       <div
-        className="absolute rounded-full"
+        className="absolute rounded-full transition-all duration-300"
         style={{
-          width: isFiring ? '280px' : '180px',
-          height: isFiring ? '280px' : '180px',
+          width: isFiring ? '300px' : '160px',
+          height: isFiring ? '300px' : '160px',
           left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)',
-          transition: 'all 0.5s ease-out',
+          background: isFiring && boltColor
+            ? `radial-gradient(circle, ${boltColor}22 0%, ${boltColor}08 30%, transparent 60%)`
+            : 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 60%)',
         }}
       />
 
       {/* 核心球 */}
       <div
-        className="w-10 h-10 rounded-full relative"
+        className="w-10 h-10 rounded-full relative transition-all duration-300"
         style={{
           background: `radial-gradient(circle at 35% 35%,
-            ${isFiring ? '#ffffff55' : '#ffffff22'},
+            ${isFiring ? '#ffffff88' : '#ffffff22'},
             #ffffff08 50%, transparent 100%)`,
           boxShadow: isFiring
-            ? '0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.1)'
+            ? `0 0 60px ${boltColor || '#fff'}88, 0 0 120px ${boltColor || '#fff'}44`
             : '0 0 20px rgba(255,255,255,0.1)',
-          transition: 'all 0.5s ease-out',
         }}
       >
         <div
-          className="absolute inset-2 rounded-full"
+          className="absolute inset-2 rounded-full transition-all duration-300"
           style={{
             background: `radial-gradient(circle at 40% 40%,
-              ${isFiring ? '#ffffff88' : '#ffffff33'}, transparent 70%)`,
-            transition: 'all 0.3s',
+              ${isFiring ? '#ffffffcc' : '#ffffff33'}, transparent 70%)`,
           }}
         />
       </div>
@@ -320,51 +353,74 @@ function EnergyCore({ isFiring }: { isFiring: boolean }) {
 // 主组件
 // ============================================================
 export default function CyberHub() {
-  const [hoveredNode, setHoveredNode] = useState<number | null>(null);
   const [firingNode, setFiringNode] = useState<number | null>(null);
   const [showBolt, setShowBolt] = useState(false);
+  const firingRef = useRef(false);
   const boltTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // 浏览器 bfcache 回退时强制重置
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        // 从 bfcache 恢复，强制重设状态
+        firingRef.current = false;
+        setFiringNode(null);
+        setShowBolt(false);
+        if (boltTimeoutRef.current) clearTimeout(boltTimeoutRef.current);
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      if (boltTimeoutRef.current) clearTimeout(boltTimeoutRef.current);
+    };
+  }, []);
+
+  // 每次挂载时确保状态干净
+  useEffect(() => {
+    firingRef.current = false;
+    setFiringNode(null);
+    setShowBolt(false);
+  }, []);
+
   const handleActivate = useCallback((index: number) => {
-    if (firingNode !== null) return; // 防止连点
+    if (firingRef.current) return;
+    firingRef.current = true;
 
     setFiringNode(index);
     setShowBolt(true);
 
     // 音效
-    playElectricZap(0.1);
-    setTimeout(() => playElectricHum(0.4, 0.04), 80);
+    playElectricZap(0.12);
+    setTimeout(() => playElectricHum(0.5, 0.05), 60);
 
-    // 跳转
     boltTimeoutRef.current = setTimeout(() => {
       const mod = ACTIVE_MODULES[index];
       if (mod) {
         window.location.href = `/personal-site${mod.path}`;
       }
-    }, 900);
-  }, [firingNode]);
-
-  // 清理
-  useEffect(() => {
-    return () => {
-      if (boltTimeoutRef.current) clearTimeout(boltTimeoutRef.current);
-    };
+      // 如果跳转失败，恢复可点击状态
+      firingRef.current = false;
+      setFiringNode(null);
+      setShowBolt(false);
+    }, 1000);
   }, []);
 
-  // 点击任意处触发随机微闪电（氛围）
+  // 点击空白处微闪电
   const handleBgClick = useCallback((e: React.MouseEvent) => {
-    // 只在点击空白区域时
     if ((e.target as HTMLElement).closest('[data-module-node]')) return;
     playElectricZap(0.03);
   }, []);
 
+  const activeColor = firingNode !== null ? ACTIVE_MODULES[firingNode]!.hex : undefined;
+
   return (
     <div
-      className="relative w-full h-screen overflow-hidden bg-[#0a0a0f]"
+      className="relative w-full h-screen overflow-hidden bg-[#0a0a0f] select-none"
       onClick={handleBgClick}
     >
       <ParticleField />
-      <EnergyCore isFiring={firingNode !== null} />
+      <EnergyCore isFiring={firingNode !== null} boltColor={activeColor} />
 
       {/* 模块节点 */}
       <div className="absolute inset-0" style={{ zIndex: 3 }}>
@@ -389,7 +445,7 @@ export default function CyberHub() {
 
       {/* 闪电电弧 */}
       <LightningBolt
-        color={firingNode !== null ? ACTIVE_MODULES[firingNode]!.hex : '#fff'}
+        color={activeColor || '#fff'}
         targetAngle={firingNode !== null
           ? (firingNode / ACTIVE_MODULES.length) * Math.PI * 2 - Math.PI / 2
           : 0}
@@ -398,11 +454,20 @@ export default function CyberHub() {
       />
 
       {/* 底部标题 */}
-      <div className="absolute bottom-10 w-full text-center" style={{ zIndex: 2 }}>
-        <h2 className="text-xs font-display tracking-[0.4em] uppercase" style={{ color: '#ffffff33' }}>
+      <div className="absolute bottom-8 w-full text-center pointer-events-none" style={{ zIndex: 2 }}>
+        <h2 className="text-xs font-display tracking-[0.5em] uppercase" style={{ color: '#ffffff22' }}>
           Memory Nexus
         </h2>
       </div>
+
+      {/* 动画定义 */}
+      <style>{`
+        @keyframes flash-burst {
+          0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+          50%  { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); }
+          100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.5); }
+        }
+      `}</style>
     </div>
   );
 }
