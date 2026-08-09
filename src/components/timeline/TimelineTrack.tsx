@@ -1,7 +1,7 @@
 // src/components/timeline/TimelineTrack.tsx
-// 成长轨迹主页面 —— 彩色电流时间之河
+// 成长轨迹 v2 —— 多色电流交织，从左向右持续流动
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MODULE_COLORS } from '../../lib/colors';
 
 interface YearData {
@@ -10,52 +10,42 @@ interface YearData {
   modules: { key: string; count: number; hex: string }[];
 }
 
-const COLORS = [
-  MODULE_COLORS.photos.hex,
-  MODULE_COLORS.study.hex,
-  MODULE_COLORS.travel.hex,
-  MODULE_COLORS.food.hex,
-  MODULE_COLORS.essays.hex,
+const CURRENTS = [
+  { hex: MODULE_COLORS.photos.hex, amplitude: 0.8, frequency: 1.2, phase: 0 },
+  { hex: MODULE_COLORS.study.hex, amplitude: 0.6, frequency: 1.5, phase: 1.2 },
+  { hex: MODULE_COLORS.travel.hex, amplitude: 0.7, frequency: 1.0, phase: 2.5 },
+  { hex: MODULE_COLORS.food.hex, amplitude: 0.5, frequency: 1.8, phase: 3.8 },
+  { hex: MODULE_COLORS.essays.hex, amplitude: 0.75, frequency: 1.3, phase: 5.0 },
 ];
 
-function ElectricCurrentSVG({ activeIndex }: { activeIndex: number }) {
+// ============================================================
+// SVG 交织电流动画
+// ============================================================
+function IntertwinedCurrents() {
   return (
     <svg
-      className="absolute inset-0 pointer-events-none overflow-visible"
+      className="w-full h-32 overflow-visible"
       viewBox="0 0 1000 120"
       preserveAspectRatio="none"
-      style={{ zIndex: 0 }}
     >
       <defs>
-        {/* 五色电流渐变 */}
-        <linearGradient id="currentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          {COLORS.map((color, i) => (
-            <>
-              <stop
-                key={`${i}-start`}
-                offset={`${(i / COLORS.length) * 100}%`}
-                stopColor={color}
-                stopOpacity="0.8"
-              />
-              <stop
-                key={`${i}-mid`}
-                offset={`${((i + 0.5) / COLORS.length) * 100}%`}
-                stopColor={color}
-                stopOpacity="1"
-              />
-              <stop
-                key={`${i}-end`}
-                offset={`${((i + 1) / COLORS.length) * 100}%`}
-                stopColor={COLORS[(i + 1) % COLORS.length]}
-                stopOpacity="0.8"
-              />
-            </>
-          ))}
-        </linearGradient>
-
-        {/* 辉光滤镜 */}
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
+        {CURRENTS.map((c, i) => (
+          <linearGradient key={i} id={`flowGrad${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={c.hex} stopOpacity="0" />
+            <stop offset="15%" stopColor={c.hex} stopOpacity="0.6" />
+            <stop offset="50%" stopColor={c.hex} stopOpacity="1" />
+            <stop offset="85%" stopColor={c.hex} stopOpacity="0.6" />
+            <stop offset="100%" stopColor={c.hex} stopOpacity="0" />
+            <animate
+              attributeName="x1" values="-100%;0%" dur={`${4 + i * 1.5}s`} repeatCount="indefinite"
+            />
+            <animate
+              attributeName="x2" values="0%;100%" dur={`${4 + i * 1.5}s`} repeatCount="indefinite"
+            />
+          </linearGradient>
+        ))}
+        <filter id="currentGlow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="blur" />
@@ -64,48 +54,78 @@ function ElectricCurrentSVG({ activeIndex }: { activeIndex: number }) {
         </filter>
       </defs>
 
-      {/* 主电流轨道 */}
-      <path
-        d="M 0 60 Q 200 30, 400 60 T 800 60 T 1000 60"
-        fill="none"
-        stroke="url(#currentGradient)"
-        strokeWidth="3"
-        filter="url(#glow)"
-        strokeDasharray="8 4"
-        className="animate-pulse"
-      >
-        <animate
-          attributeName="stroke-dashoffset"
-          from="24"
-          to="0"
-          dur="1s"
-          repeatCount="indefinite"
+      {/* 背景噪点线 */}
+      {CURRENTS.map((c, i) => (
+        <path
+          key={`bg-${i}`}
+          d={`M 0 ${60 + Math.sin(i * 1.5) * 25}
+              C 200 ${60 - Math.cos(i) * 30}, 300 ${60 + Math.sin(i * 2) * 35},
+                500 ${60 - Math.cos(i * 1.5) * 25}
+              C 700 ${60 + Math.sin(i * 2.5) * 30}, 800 ${60 - Math.cos(i) * 20},
+                1000 ${60 + Math.sin(i * 2) * 28}`}
+          fill="none" stroke={c.hex} strokeWidth="1" opacity="0.08"
         />
-      </path>
+      ))}
 
-      {/* 第二层轨道（更宽的辉光） */}
-      <path
-        d="M 0 60 Q 200 30, 400 60 T 800 60 T 1000 60"
-        fill="none"
-        stroke="url(#currentGradient)"
-        strokeWidth="8"
-        opacity="0.2"
-        filter="url(#glow)"
-      />
+      {/* 交织电流主线 */}
+      {CURRENTS.map((c, i) => {
+        const pathDef = `
+          M -20 ${60 + Math.sin(c.phase) * c.amplitude * 25}
+          C 100 ${60 - Math.cos(c.phase) * c.amplitude * 30},
+            250 ${60 + Math.sin(c.phase + 1.5) * c.amplitude * 35},
+            350 ${60 - Math.cos(c.phase + 2) * c.amplitude * 28}
+          C 450 ${60 + Math.sin(c.phase + 3) * c.amplitude * 32},
+            600 ${60 - Math.cos(c.phase + 1) * c.amplitude * 25},
+            750 ${60 + Math.sin(c.phase + 2.5) * c.amplitude * 30}
+          C 850 ${60 - Math.cos(c.phase + 1.8) * c.amplitude * 28},
+            950 ${60 + Math.sin(c.phase + 3.2) * c.amplitude * 22},
+            1020 ${60 - Math.cos(c.phase + 4) * c.amplitude * 26}
+        `;
+
+        return (
+          <g key={`current-${i}`}>
+            {/* 辉光层 */}
+            <path d={pathDef} fill="none" stroke={c.hex} strokeWidth="4" opacity="0.12"
+              filter="url(#currentGlow)">
+              <animate attributeName="stroke-dashoffset" from="2000" to="-2000"
+                dur={`${6 + i * 2}s`} repeatCount="indefinite" />
+            </path>
+            {/* 主电流线 */}
+            <path d={pathDef} fill="none" stroke={c.hex} strokeWidth="1.8" opacity="0.7"
+              filter="url(#currentGlow)" />
+            {/* 亮白芯线 */}
+            <path d={pathDef} fill="none" stroke="#fff" strokeWidth="0.5" opacity="0.5" />
+
+            {/* 流动脉冲点 */}
+            <circle r="3" fill="#fff" opacity="0.8" filter="url(#currentGlow)">
+              <animateMotion dur={`${5 + i * 1.5}s`} repeatCount="indefinite"
+                path={pathDef} />
+            </circle>
+            <circle r="2" fill={c.hex} opacity="0.9">
+              <animateMotion dur={`${5 + i * 1.5}s`} repeatCount="indefinite"
+                begin="0.5s" path={pathDef} />
+            </circle>
+            <circle r="2.5" fill={c.hex} opacity="0.7">
+              <animateMotion dur={`${5 + i * 1.5}s`} repeatCount="indefinite"
+                begin="1.5s" path={pathDef} />
+            </circle>
+          </g>
+        );
+      })}
     </svg>
   );
 }
 
+// ============================================================
+// 主组件
+// ============================================================
 export default function TimelineTrack({ years }: { years: YearData[] }) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 自动滚动到最新年份
   useEffect(() => {
-    if (scrollRef.current && years.length > 0) {
-      const el = scrollRef.current;
-      el.scrollLeft = el.scrollWidth;
+    if (scrollRef.current && years.length > 1) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
   }, [years.length]);
 
@@ -116,70 +136,63 @@ export default function TimelineTrack({ years }: { years: YearData[] }) {
         <p className="text-lg" style={{ color: 'var(--color-text-muted)' }}>
           时间之河还在等待第一滴记忆。
         </p>
-        <p className="text-sm mt-2" style={{ color: 'var(--color-text-muted)' }}>
-          去其他模块添加一些内容吧，它们会自动汇聚到这里。
-        </p>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      {/* SVG 电流轨道 */}
-      <div className="relative h-24 mb-8">
-        <ElectricCurrentSVG activeIndex={activeIndex ?? -1} />
+    <div>
+      {/* 交织电流轨道 */}
+      <div className="mb-6">
+        <IntertwinedCurrents />
+      </div>
 
-        {/* 年份节点（定位在 SVG 轨道上） */}
-        <div
-          ref={scrollRef}
-          className="absolute inset-0 flex items-center gap-16 px-[20%] overflow-x-auto
-                     scrollbar-hide snap-x snap-mandatory"
-          style={{ zIndex: 1 }}
-        >
-          {years.map((year, i) => (
+      {/* 年份节点（横向滚动） */}
+      <div
+        ref={scrollRef}
+        className="flex gap-10 px-[8%] overflow-x-auto scrollbar-hide snap-x snap-mandatory py-4"
+      >
+        {years.map((year, i) => {
+          const hex = CURRENTS[i % CURRENTS.length]!.hex;
+          const isHovered = hoveredIdx === i;
+
+          return (
             <a
               key={year.year}
               href={`/personal-site/timeline/${year.year}`}
-              className="flex-shrink-0 snap-center group cursor-pointer"
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => setActiveIndex(i)}
+              className="flex-shrink-0 snap-center group"
+              onMouseEnter={() => setHoveredIdx(i)}
+              onMouseLeave={() => setHoveredIdx(null)}
             >
-              {/* 年份节点圆环 */}
-              <div className="relative flex flex-col items-center">
+              <div className="relative flex flex-col items-center transition-all duration-500"
+                   style={{ transform: isHovered ? 'translateY(-4px)' : 'none' }}>
                 {/* 外层辉光环 */}
                 <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center
-                             transition-all duration-500"
+                  className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500"
                   style={{
-                    background: hoveredIndex === i || activeIndex === i
-                      ? `radial-gradient(circle, ${COLORS[i % COLORS.length]}22, transparent 70%)`
+                    background: isHovered
+                      ? `radial-gradient(circle, ${hex}33, transparent 65%)`
                       : 'transparent',
-                    boxShadow: hoveredIndex === i || activeIndex === i
-                      ? `0 0 40px ${COLORS[i % COLORS.length]}44, 0 0 80px ${COLORS[i % COLORS.length]}22`
+                    boxShadow: isHovered
+                      ? `0 0 50px ${hex}33, 0 0 80px ${hex}15`
                       : 'none',
                   }}
                 >
                   {/* 内环 */}
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center
-                               transition-all duration-500 border-2"
+                    className="w-10 h-10 rounded-full flex items-center justify-center border-2
+                               transition-all duration-500"
                     style={{
-                      borderColor: hoveredIndex === i || activeIndex === i
-                        ? COLORS[i % COLORS.length]
-                        : 'rgba(255,255,255,0.1)',
-                      backgroundColor: hoveredIndex === i || activeIndex === i
-                        ? `${COLORS[i % COLORS.length]}18`
-                        : 'transparent',
-                      transform: hoveredIndex === i ? 'scale(1.15)' : 'scale(1)',
+                      borderColor: isHovered ? hex : 'rgba(255,255,255,0.1)',
+                      backgroundColor: isHovered ? `${hex}15` : 'transparent',
+                      transform: isHovered ? 'scale(1.1)' : 'scale(1)',
                     }}
                   >
                     <span
-                      className="font-display text-sm font-bold transition-all duration-500"
+                      className="font-display text-xs font-bold transition-all duration-500"
                       style={{
-                        color: hoveredIndex === i || activeIndex === i
-                          ? COLORS[i % COLORS.length]
-                          : 'rgba(255,255,255,0.3)',
+                        color: isHovered ? hex : 'rgba(255,255,255,0.25)',
+                        textShadow: isHovered ? `0 0 10px ${hex}` : 'none',
                       }}
                     >
                       {year.year}
@@ -187,58 +200,45 @@ export default function TimelineTrack({ years }: { years: YearData[] }) {
                   </div>
                 </div>
 
-                {/* 年份下方模块指示条 */}
-                <div className="flex gap-1 mt-3">
-                  {year.modules.map((mod) => (
+                {/* 模块色点 */}
+                <div className="flex gap-1 mt-2">
+                  {year.modules.map((m) => (
                     <div
-                      key={mod.key}
-                      className="w-2 h-2 rounded-full transition-all duration-500"
+                      key={m.key}
+                      className="w-1.5 h-1.5 rounded-full transition-all duration-500"
                       style={{
-                        backgroundColor: mod.hex,
-                        boxShadow: hoveredIndex === i
-                          ? `0 0 6px ${mod.hex}`
-                          : 'none',
-                        opacity: hoveredIndex === i ? 1 : 0.5,
+                        backgroundColor: m.hex,
+                        boxShadow: isHovered ? `0 0 5px ${m.hex}` : 'none',
+                        opacity: isHovered ? 1 : 0.4,
+                        transform: isHovered ? 'scale(1.3)' : 'scale(1)',
                       }}
-                      title={`${mod.key}: ${mod.count}`}
                     />
                   ))}
                 </div>
 
-                {/* 内容计数 */}
+                {/* 计数 */}
                 <span
-                  className="text-xs mt-2 transition-all duration-500"
+                  className="text-xs mt-1.5 transition-all duration-500"
                   style={{
-                    color: hoveredIndex === i || activeIndex === i
-                      ? 'var(--color-text-secondary)'
-                      : 'var(--color-text-muted)',
-                    opacity: hoveredIndex === i ? 1 : 0.5,
+                    color: isHovered ? 'var(--color-text-secondary)' : 'var(--color-text-muted)',
+                    opacity: isHovered ? 1 : 0.4,
                   }}
                 >
-                  {year.count} 条记忆
+                  {year.count}
                 </span>
               </div>
             </a>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       {/* 图例 */}
-      <div className="flex justify-center gap-4 mt-6 flex-wrap">
-        {[
-          { key: 'photos', hex: MODULE_COLORS.photos.hex, label: '照片' },
-          { key: 'study', hex: MODULE_COLORS.study.hex, label: '学习' },
-          { key: 'travel', hex: MODULE_COLORS.travel.hex, label: '旅行' },
-          { key: 'food', hex: MODULE_COLORS.food.hex, label: '美食' },
-          { key: 'essays', hex: MODULE_COLORS.essays.hex, label: '随笔' },
-        ].map((item) => (
-          <div key={item.key} className="flex items-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: item.hex, boxShadow: `0 0 4px ${item.hex}` }}
-            />
+      <div className="flex justify-center gap-5 mt-6 flex-wrap">
+        {CURRENTS.map((c, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.hex, boxShadow: `0 0 4px ${c.hex}` }} />
             <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              {item.label}
+              {['照片','学习','旅行','美食','随笔'][i]}
             </span>
           </div>
         ))}
