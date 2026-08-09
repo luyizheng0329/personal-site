@@ -1,0 +1,78 @@
+---
+// src/pages/timeline/index.astro
+// 成长轨迹主页面 —— 彩色电流时间之河
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import TimelineTrack from '../../components/timeline/TimelineTrack';
+import { MODULE_COLORS } from '../../lib/colors';
+
+// 聚合所有年份数据
+const allCollections = await Promise.all([
+  getCollection('photos', ({ data }) => !data.draft),
+  getCollection('study', ({ data }) => !data.draft),
+  getCollection('travel', ({ data }) => !data.draft),
+  getCollection('food', ({ data }) => !data.draft),
+  getCollection('essays', ({ data }) => !data.draft),
+]);
+
+const moduleMeta = [
+  { key: 'photos', hex: MODULE_COLORS.photos.hex },
+  { key: 'study', hex: MODULE_COLORS.study.hex },
+  { key: 'travel', hex: MODULE_COLORS.travel.hex },
+  { key: 'food', hex: MODULE_COLORS.food.hex },
+  { key: 'essays', hex: MODULE_COLORS.essays.hex },
+];
+
+const yearMap = new Map<string, { count: number; modules: Record<string, number> }>();
+
+allCollections.forEach((collection, ci) => {
+  const key = moduleMeta[ci]!.key;
+  collection.forEach((entry) => {
+    const year = entry.data.growthPhase;
+    if (!year) return;
+    if (!yearMap.has(year)) {
+      yearMap.set(year, { count: 0, modules: {} });
+    }
+    const yd = yearMap.get(year)!;
+    yd.count++;
+    yd.modules[key] = (yd.modules[key] || 0) + 1;
+  });
+});
+
+const years = Array.from(yearMap.entries())
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([year, data]) => ({
+    year,
+    count: data.count,
+    modules: moduleMeta
+      .filter((m) => data.modules[m.key])
+      .map((m) => ({ key: m.key, count: data.modules[m.key]!, hex: m.hex })),
+  }));
+---
+
+<BaseLayout title="成长轨迹" description="彩色电流汇成时间之河">
+  <div class="max-w-5xl mx-auto px-6 py-12">
+    <!-- 标题区 -->
+    <header class="mb-12 text-center">
+      <h1
+        class="text-5xl font-display font-bold tracking-widest mb-4
+               bg-gradient-to-r from-[#ff6b6b] via-[#cc5de8] via-[#4dabf7] via-[#ffd43b] to-[#69db7c]
+               bg-clip-text text-transparent"
+        style={{ filter: 'brightness(1.3)' }}
+      >
+        成长轨迹
+      </h1>
+      <p class="text-sm tracking-[0.3em] uppercase" style="color: var(--color-text-muted);">
+        时间之河 · 记忆汇聚
+      </p>
+      {years.length > 0 && (
+        <p class="text-xs mt-3" style="color: var(--color-text-muted);">
+          {years.length} 个年份 · {years.reduce((s, y) => s + y.count, 0)} 条记忆
+        </p>
+      )}
+    </header>
+
+    <!-- 彩色电流时间线 -->
+    <TimelineTrack years={years} client:load />
+  </div>
+</BaseLayout>

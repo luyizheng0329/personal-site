@@ -1,0 +1,55 @@
+---
+// src/pages/study/index.astro
+// 学习笔记列表页 —— 蓝光 · 知识库
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import StudyList from '../../components/study/StudyList';
+
+const rawEntries = await getCollection('study', ({ data }) => !data.draft);
+
+const entries = rawEntries
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .map((entry) => ({
+    id: entry.id,
+    title: entry.data.title,
+    date: entry.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+    category: entry.data.category,
+    subject: entry.data.subject,
+    tags: entry.data.tags || [],
+    growthPhase: entry.data.growthPhase,
+    slug: entry.id.replace('/index', ''),
+    hasFile: !!entry.data.file,
+  }));
+
+const counts = {
+  all: entries.length,
+  courseware: entries.filter((e) => e.category === 'courseware').length,
+  outline: entries.filter((e) => e.category === 'outline').length,
+  problem: entries.filter((e) => e.category === 'problem').length,
+};
+---
+
+<BaseLayout title="学习笔记" description="理性与知识的沉淀">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <!-- 标题区 -->
+    <header class="mb-10 text-center">
+      <h1
+        class="text-4xl font-display font-bold tracking-widest mb-3"
+        style="color: var(--color-study); text-shadow: 0 0 20px var(--color-study);"
+      >
+        学习笔记
+      </h1>
+      <p class="text-sm tracking-widest" style="color: var(--color-text-muted);">
+        冷静蓝 · 知识沉淀
+      </p>
+      {entries.length > 0 && (
+        <p class="text-xs mt-3" style="color: var(--color-text-muted);">
+          共 {counts.all} 篇 · 课件 {counts.courseware} · 提纲 {counts.outline} · 题目 {counts.problem}
+        </p>
+      )}
+    </header>
+
+    <!-- 学习列表（含 Tab 切换） -->
+    <StudyList entries={entries} client:load />
+  </div>
+</BaseLayout>

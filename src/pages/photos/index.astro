@@ -1,0 +1,48 @@
+---
+// src/pages/photos/index.astro
+// 照片墙列表页 —— 暖橙光 · 记忆切片
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import PhotoFeed from '../../components/photos/PhotoFeed';
+
+const rawPhotos = await getCollection('photos', ({ data }) => !data.draft);
+
+const entries = rawPhotos
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .map((entry) => ({
+    id: entry.id,
+    title: entry.data.title,
+    date: entry.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+    cover: entry.data.cover,
+    description: entry.data.description,
+    location: entry.data.location,
+    mood: entry.data.mood,
+    growthPhase: entry.data.growthPhase,
+    slug: entry.id.replace('/index', ''),
+  }));
+---
+
+<BaseLayout title="照片墙" description="日常生活的温度——暖橙光·记忆切片">
+  <div class="max-w-6xl mx-auto px-6 py-12">
+    <!-- 标题区 -->
+    <header class="mb-12 text-center">
+      <h1
+        class="text-4xl font-display font-bold tracking-widest mb-3"
+        style="color: var(--color-photos); text-shadow: 0 0 20px var(--color-photos);"
+      >
+        照片墙
+      </h1>
+      <p class="text-sm tracking-widest" style="color: var(--color-text-muted);">
+        暖橙光 · 记忆切片
+      </p>
+      {entries.length > 0 && (
+        <p class="text-xs mt-3" style="color: var(--color-text-muted);">
+          共 {entries.length} 组记忆
+        </p>
+      )}
+    </header>
+
+    <!-- 照片流 -->
+    <PhotoFeed entries={entries} client:load />
+  </div>
+</BaseLayout>

@@ -1,0 +1,45 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('food', ({ data }) => !data.draft);
+  return entries.map((entry) => {
+    const slug = entry.id.replace('/index', '');
+    return { params: { slug }, props: { entry } };
+  });
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+---
+
+<BaseLayout title={data.title}>
+  <article class="max-w-4xl mx-auto px-6 py-20">
+    <header class="mb-12">
+      <div class="flex gap-2 mb-4">
+        <span class="text-xs px-3 py-1 rounded-full" style="color: var(--color-food); background: var(--color-food)18;">
+          {data.category}
+        </span>
+        <span class="text-xs px-3 py-1 rounded-full" style="color: var(--color-text-muted); background: #ffffff08;">
+          {data.growthPhase}
+        </span>
+        {data.rating && (
+          <span class="text-xs px-3 py-1 rounded-full" style="color: var(--color-food); background: #ffffff08;">
+            {'⭐'.repeat(data.rating)}
+          </span>
+        )}
+      </div>
+      <h1 class="text-3xl font-bold mb-2">{data.title}</h1>
+      {data.restaurant && (
+        <p class="text-sm" style="color: var(--color-text-secondary);">
+          🍽️ {data.restaurant} {data.city && `· ${data.city}`}
+        </p>
+      )}
+    </header>
+    <div class="prose prose-invert max-w-none">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

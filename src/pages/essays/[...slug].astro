@@ -1,0 +1,41 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('essays', ({ data }) => !data.draft);
+  return entries.map((entry) => {
+    const slug = entry.id.replace('/index', '');
+    return { params: { slug }, props: { entry } };
+  });
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+---
+
+<BaseLayout title={data.title}>
+  <article class="max-w-2xl mx-auto px-6 py-20">
+    <header class="mb-12 text-center">
+      <span class="text-xs px-3 py-1 rounded-full" style="color: var(--color-essays); background: var(--color-essays)18;">
+        {data.growthPhase}
+      </span>
+      <h1 class="text-3xl font-bold mt-4 mb-2" style="font-family: var(--font-letter);">
+        {data.title}
+      </h1>
+      <p class="text-sm" style="color: var(--color-essays);">
+        ✉️ 寄给 {data.recipient}
+      </p>
+      <time class="text-sm" style="color: var(--color-text-muted);">
+        {data.date.toLocaleDateString('zh-CN')}
+      </time>
+    </header>
+    <div
+      class="p-12 rounded-lg leading-relaxed"
+      style="background: linear-gradient(135deg, #1a2e1a08, #1a2e1a15); border: 1px solid var(--color-essays)22; font-family: var(--font-letter);"
+    >
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

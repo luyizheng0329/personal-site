@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+---
+
+<BaseLayout title="404 · 信号丢失">
+  <div class="min-h-[80vh] flex flex-col items-center justify-center text-center px-6">
+    <h1 class="text-8xl font-display font-bold mb-4" style="color: var(--color-text-muted);">
+      404
+    </h1>
+    <p class="text-lg mb-8" style="color: var(--color-text-secondary);">
+      信号中断，此页面不存在于记忆中枢。
+    </p>
+    <a
+      href="/personal-site/"
+      class="px-6 py-3 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105"
+      style="background: #ffffff10; color: var(--color-text-primary);"
+    >
+      返回中枢
+    </a>
+  </div>
+</BaseLayout>

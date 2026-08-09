@@ -1,0 +1,121 @@
+---
+// src/pages/photos/[...slug].astro
+// 照片组详情页 —— 大图轮播 + 文字日记
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import PhotoCarousel from '../../components/photos/PhotoCarousel';
+
+export async function getStaticPaths() {
+  const photos = await getCollection('photos', ({ data }) => !data.draft);
+  return photos.map((entry) => {
+    const slug = entry.id.replace('/index', '');
+    return {
+      params: { slug: slug },
+      props: { entry },
+    };
+  });
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+// 构建模拟图片列表（实际项目中从 entry 解析或 frontmatter 读取）
+// 这里为演示使用 picsum 占位图
+const photoCount = 5;
+const images = Array.from({ length: photoCount }, (_, i) =>
+  `https://picsum.photos/seed/${entry.id.replace('/', '-')}-${i + 1}/1200/800`
+);
+
+const moodEmoji: Record<string, string> = {
+  '开心': '😊',
+  '感动': '🥹',
+  '平静': '😌',
+  '兴奋': '🤩',
+  '怀念': '🥲',
+};
+---
+
+<BaseLayout title={data.title} description={data.description}>
+  <article class="max-w-4xl mx-auto px-6 py-12">
+    <!-- 面包屑 -->
+    <nav class="mb-8">
+      <a
+        href="/personal-site/photos"
+        class="text-sm hover:underline transition-all"
+        style="color: var(--color-photos);"
+      >
+        ← 回到照片墙
+      </a>
+    </nav>
+
+    <!-- 照片轮播 -->
+    <PhotoCarousel images={images} title={data.title} client:load />
+
+    <!-- 文字区 -->
+    <div class="mt-10 max-w-2xl mx-auto">
+      <header class="mb-8 text-center">
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <span
+            class="text-xs px-3 py-1 rounded-full"
+            style="color: var(--color-photos); background: rgba(255,107,107,0.12);"
+          >
+            {data.growthPhase}
+          </span>
+          {data.mood && (
+            <span class="text-lg" title={data.mood}>
+              {moodEmoji[data.mood] || data.mood}
+            </span>
+          )}
+        </div>
+        <h1 class="text-2xl font-bold mb-2">{data.title}</h1>
+        <div class="flex items-center justify-center gap-4 text-sm" style="color: var(--color-text-muted);">
+          <time>{data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
+          {data.location && (
+            <span>📍 {data.location}</span>
+          )}
+        </div>
+      </header>
+
+      {/* 日记正文 */}
+      <div
+        class="prose prose-invert max-w-none leading-relaxed text-sm"
+        style="color: var(--color-text-secondary);"
+      >
+        <Content />
+      </div>
+
+      {/* 标签 */}
+      {data.tags && data.tags.length > 0 && (
+        <div class="flex flex-wrap gap-2 mt-8 justify-center">
+          {data.tags.map((tag: string) => (
+            <span
+              class="text-xs px-3 py-1 rounded-full"
+              style="color: var(--color-text-muted); background: rgba(255,255,255,0.05);"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* 底部导航 */}
+    <footer class="mt-16 pt-8 border-t border-white/5 flex justify-between">
+      <a
+        href="/personal-site/photos"
+        class="text-sm hover:underline"
+        style="color: var(--color-photos);"
+      >
+        ← 照片墙
+      </a>
+      <a
+        href={`/personal-site/timeline/${data.growthPhase}`}
+        class="text-sm hover:underline"
+        style="color: var(--color-text-secondary);"
+      >
+        {data.growthPhase} 时间线 →
+      </a>
+    </footer>
+  </article>
+</BaseLayout>

@@ -1,0 +1,168 @@
+---
+// src/pages/timeline/[year].astro
+// 单一年份时间线 —— 聚合 + 统计 + 彩色卡片
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import { getContentByYear, getAllYears } from '../../lib/content';
+import { MODULE_COLORS, type ModuleKey } from '../../lib/colors';
+
+export async function getStaticPaths() {
+  const years = await getAllYears();
+  if (years.length === 0) {
+    years.push('2026', '2027');
+  }
+  return years.map((year) => ({ params: { year } }));
+}
+
+const { year } = Astro.params;
+const items = await getContentByYear(year!).catch(() => []);
+
+const moduleLabel: Record<ModuleKey, string> = {
+  photos: '照片',
+  study: '学习',
+  travel: '旅行',
+  food: '美食',
+  essays: '随笔',
+  love: '恋爱',
+};
+
+// 按季度分组
+const quarters = [
+  { label: '春', months: [1,2,3], icon: '🌸' },
+  { label: '夏', months: [4,5,6], icon: '☀️' },
+  { label: '秋', months: [7,8,9], icon: '🍂' },
+  { label: '冬', months: [10,11,12], icon: '❄️' },
+];
+
+const quarterlyItems = quarters.map(q => ({
+  ...q,
+  items: items.filter(i => q.months.includes(i.data.date.getMonth() + 1)),
+})).filter(q => q.items.length > 0);
+
+// 各模块统计
+const moduleStats = new Map<string, number>();
+items.forEach(i => {
+  moduleStats.set(i.module, (moduleStats.get(i.module) || 0) + 1);
+});
+---
+
+<BaseLayout title={`${year} · 成长轨迹`} description={`${year}年的所有记忆`}>
+  <div class="max-w-4xl mx-auto px-6 py-12">
+    <!-- 年份标题 -->
+    <header class="text-center mb-12">
+      <a
+        href="/personal-site/timeline"
+        class="inline-block text-xs mb-6 hover:underline transition-all"
+        style="color: var(--color-text-muted);"
+      >
+        ← 时间之河
+      </a>
+      <h1
+        class="text-6xl font-display font-bold mb-4
+               bg-gradient-to-r from-[#ff6b6b] via-[#cc5de8] via-[#4dabf7] via-[#ffd43b] to-[#69db7c]
+               bg-clip-text text-transparent"
+      >
+        {year}
+      </h1>
+
+      <!-- 统计条 -->
+      <div class="flex justify-center gap-4 mt-6 flex-wrap">
+        {[
+          { key: 'photos', hex: MODULE_COLORS.photos.hex, label: '照片' },
+          { key: 'study', hex: MODULE_COLORS.study.hex, label: '学习' },
+          { key: 'travel', hex: MODULE_COLORS.travel.hex, label: '旅行' },
+          { key: 'food', hex: MODULE_COLORS.food.hex, label: '美食' },
+          { key: 'essays', hex: MODULE_COLORS.essays.hex, label: '随笔' },
+        ].filter(m => moduleStats.has(m.key)).map(m => (
+          <div
+            class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style={{
+              backgroundColor: `${m.hex}12`,
+              border: `1px solid ${m.hex}22`,
+            }}
+          >
+            <span class="w-2 h-2 rounded-full" style={{ backgroundColor: m.hex, boxShadow: `0 0 4px ${m.hex}` }}></span>
+            <span style={{ color: m.hex }}>{m.label}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{moduleStats.get(m.key)}</span>
+          </div>
+        ))}
+      </div>
+      <p class="text-xs mt-4" style="color: var(--color-text-muted);">
+        共 {items.length} 条记忆
+      </p>
+    </header>
+
+    <!-- 假如没有内容 -->
+    {items.length === 0 ? (
+      <div class="text-center py-20">
+        <p class="text-4xl mb-4">🕳️</p>
+        <p class="text-lg" style="color: var(--color-text-muted);">
+          {year} 年还没有记忆，去其他模块添加一些吧。
+        </p>
+      </div>
+    ) : (
+      <div class="relative">
+        {/* 按季度组织 */}
+        {quarterlyItems.map((quarter) => (
+          <div class="mb-12">
+            <!-- 季度标题 -->
+            <div class="flex items-center gap-3 mb-6 sticky top-14 z-10 py-2"
+                 style={{ backgroundColor: 'var(--color-cyber-bg)' }}>
+              <span class="text-xl">{quarter.icon}</span>
+              <span class="text-sm font-medium tracking-widest" style="color: 'var(--color-text-muted)';">
+                {quarter.label}季
+              </span>
+              <div class="flex-1 h-px bg-white/5"></div>
+              <span class="text-xs" style="color: 'var(--color-text-muted)';">
+                {quarter.items.length} 条
+              </span>
+            </div>
+
+            {/* 内容卡片 */}
+            <div class="space-y-3 pl-8 border-l" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+              {quarter.items.map((item) => (
+                <a
+                  href={`/personal-site/${item.collection}/${item.id.replace('/index', '')}`}
+                  class="block group relative"
+                >
+                  <article
+                    class="p-4 rounded-xl transition-all duration-300
+                           group-hover:translate-x-3 group-hover:bg-white/[0.02]"
+                    style={{
+                      backgroundColor: 'var(--color-cyber-card)',
+                      border: `1px solid ${item.color}11`,
+                    }}
+                  >
+                    {/* 时间线连接点 */}
+                    <div
+                      class="absolute -left-[22px] top-5 w-2.5 h-2.5 rounded-full transition-all duration-300
+                             group-hover:scale-150"
+                      style={{
+                        backgroundColor: item.color,
+                        boxShadow: `0 0 8px ${item.color}, 0 0 16px ${item.color}33`,
+                      }}
+                    />
+
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span
+                        class="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ color: item.color, backgroundColor: `${item.color}15` }}
+                      >
+                        {moduleLabel[item.module]}
+                      </span>
+                      <span class="text-xs" style="color: 'var(--color-text-muted)';">
+                        {item.data.date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <h3 class="font-medium text-sm group-hover:underline" style={{ color: 'var(--color-text-primary)' }}>
+                      {item.data.title}
+                    </h3>
+                  </article>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</BaseLayout>

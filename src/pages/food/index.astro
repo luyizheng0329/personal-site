@@ -1,0 +1,76 @@
+---
+// src/pages/food/index.astro
+// 美食日记 —— 温暖金 · 味觉盛宴
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import FoodTable from '../../components/food/FoodTable';
+
+const rawFood = await getCollection('food', ({ data }) => !data.draft);
+
+const entries = rawFood
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .map((entry) => ({
+    id: entry.id,
+    title: entry.data.title,
+    date: entry.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+    category: entry.data.category,
+    restaurant: entry.data.restaurant,
+    homemade: entry.data.homemade,
+    rating: entry.data.rating,
+    tags: entry.data.tags || [],
+    growthPhase: entry.data.growthPhase,
+    slug: entry.id.replace('/index', ''),
+  }));
+
+// 按分类聚合
+const categoryMap = new Map<string, typeof entries>();
+for (const entry of entries) {
+  const list = categoryMap.get(entry.category) || [];
+  list.push(entry);
+  categoryMap.set(entry.category, list);
+}
+
+const categoryIcons: Record<string, string> = {
+  '火锅': '🫕',
+  '日料': '🍣',
+  '甜品': '🍰',
+  '烧烤': '🍖',
+  '家常菜': '🍳',
+  '小吃': '🍢',
+  '饮品': '🧋',
+};
+
+const categories = Array.from(categoryMap.entries())
+  .sort((a, b) => b[1].length - a[1].length)
+  .map(([name, items]) => ({
+    name,
+    icon: categoryIcons[name] || '🍴',
+    count: items.length,
+    entries: items,
+  }));
+---
+
+<BaseLayout title="美食日记" description="味蕾的记忆——温暖金·味觉盛宴">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <!-- 标题区 -->
+    <header class="mb-10 text-center">
+      <h1
+        class="text-4xl font-display font-bold tracking-widest mb-3"
+        style="color: var(--color-food); text-shadow: 0 0 20px var(--color-food);"
+      >
+        美食日记
+      </h1>
+      <p class="text-sm tracking-widest" style="color: var(--color-text-muted);">
+        温暖金 · 味觉盛宴
+      </p>
+      {entries.length > 0 && (
+        <p class="text-xs mt-3" style="color: var(--color-text-muted);">
+          已记录 {entries.length} 道美味 · {categories.length} 个分类
+        </p>
+      )}
+    </header>
+
+    <!-- 餐桌 + 分类卡片 + 列表 -->
+    <FoodTable categories={categories} entries={entries} client:load />
+  </div>
+</BaseLayout>

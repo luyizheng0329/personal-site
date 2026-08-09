@@ -1,0 +1,96 @@
+---
+// src/components/layout/Nav.astro
+// 全局导航栏 —— 赛博朋克风 + 移动端汉堡菜单
+import { ACTIVE_MODULES } from '../../lib/colors';
+---
+
+<nav class="fixed top-0 left-0 right-0 z-50 bg-[#050508]/80 backdrop-blur-md border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+    <!-- Logo -->
+    <a
+      href="/personal-site/"
+      class="font-display text-base md:text-lg font-bold tracking-widest text-white hover:text-glow transition-all duration-300 flex-shrink-0"
+      style="text-shadow: 0 0 10px rgba(255,255,255,0.3);"
+    >
+      LUYIZ
+    </a>
+
+    <!-- 桌面端模块导航 -->
+    <div class="hidden md:flex items-center gap-1">
+      {ACTIVE_MODULES.map((mod) => (
+        <a
+          href={`/personal-site${mod.path}`}
+          class="px-2.5 py-1.5 text-xs font-medium rounded-full transition-all duration-300 hover:scale-105"
+          style={`color: ${mod.hex}; --tw-shadow-color: ${mod.hex};`}
+        >
+          <span class="hover:shadow-[0_0_12px_var(--tw-shadow-color)] transition-shadow duration-300 rounded-full px-1.5 py-1">
+            {mod.label}
+          </span>
+        </a>
+      ))}
+
+      <a
+        href="/personal-site/timeline"
+        class="ml-1 px-3 py-1.5 text-xs font-bold rounded-full
+               bg-gradient-to-r from-[#ff6b6b] via-[#cc5de8] via-[#4dabf7] via-[#ffd43b] to-[#69db7c]
+               text-black hover:scale-105 transition-all duration-300"
+      >
+        成长轨迹
+      </a>
+    </div>
+
+    <!-- 移动端汉堡按钮 -->
+    <button
+      id="mobile-menu-btn"
+      class="md:hidden text-white/60 hover:text-white transition-colors p-1"
+      aria-label="菜单"
+    >
+      <svg id="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+      <svg id="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden">
+        <path d="M6 6l12 12M6 18L18 6" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- 移动端下拉菜单 -->
+  <div
+    id="mobile-menu"
+    class="hidden md:hidden border-t border-white/5 px-4 py-3 space-y-1"
+    style={{ backgroundColor: 'rgba(5,5,8,0.95)' }}
+  >
+    {ACTIVE_MODULES.map((mod) => (
+      <a
+        href={`/personal-site${mod.path}`}
+        class="block px-3 py-2 rounded-lg text-sm transition-colors"
+        style={`color: ${mod.hex};`}
+      >
+        {mod.label}
+      </a>
+    ))}
+    <a
+      href="/personal-site/timeline"
+      class="block px-3 py-2 rounded-lg text-sm font-medium
+             bg-gradient-to-r from-[#ff6b6b] via-[#cc5de8] via-[#4dabf7] via-[#ffd43b] to-[#69db7c]
+             bg-clip-text text-transparent"
+    >
+      成长轨迹
+    </a>
+  </div>
+</nav>
+
+<div class="h-14"></div>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  const iconOpen = document.getElementById('menu-icon-open');
+  const iconClose = document.getElementById('menu-icon-close');
+
+  btn?.addEventListener('click', () => {
+    menu?.classList.toggle('hidden');
+    iconOpen?.classList.toggle('hidden');
+    iconClose?.classList.toggle('hidden');
+  });
+</script>

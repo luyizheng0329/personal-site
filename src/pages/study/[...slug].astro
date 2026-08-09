@@ -1,0 +1,46 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('study', ({ data }) => !data.draft);
+  return entries.map((entry) => {
+    const slug = entry.id.replace('/index', '');
+    return {
+      params: { slug },
+      props: { entry },
+    };
+  });
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+---
+
+<BaseLayout title={data.title}>
+  <article class="max-w-4xl mx-auto px-6 py-20">
+    <header class="mb-12">
+      <div class="flex gap-2 mb-4">
+        <span class="text-xs px-3 py-1 rounded-full" style="color: var(--color-study); background: var(--color-study)18;">
+          {data.category === 'courseware' ? '课件' : data.category === 'outline' ? '提纲' : '题目'}
+        </span>
+        <span class="text-xs px-3 py-1 rounded-full" style="color: var(--color-text-muted); background: #ffffff08;">
+          {data.growthPhase}
+        </span>
+      </div>
+      <h1 class="text-3xl font-bold mb-2">{data.title}</h1>
+      <time class="text-sm" style="color: var(--color-text-muted);">
+        {data.date.toLocaleDateString('zh-CN')}
+      </time>
+      {data.file && (
+        <a href={`/personal-site/files/${data.file}`} download class="ml-4 text-sm hover:underline" style="color: var(--color-study);">
+          📥 下载文件
+        </a>
+      )}
+    </header>
+    <div class="prose prose-invert max-w-none">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

@@ -1,0 +1,47 @@
+---
+// src/pages/essays/index.astro
+// 随笔散记 —— 清新绿 · 时光信笺
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import LetterStack from '../../components/essays/LetterStack';
+
+const rawEssays = await getCollection('essays', ({ data }) => !data.draft);
+
+const entries = rawEssays
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .map((entry) => ({
+    id: entry.id,
+    title: entry.data.title,
+    date: entry.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+    recipient: entry.data.recipient,
+    tags: entry.data.tags || [],
+    growthPhase: entry.data.growthPhase,
+    slug: entry.id.replace('/index', ''),
+    mood: entry.data.mood,
+  }));
+---
+
+<BaseLayout title="随笔散记" description="清新思绪的流淌——时光信笺">
+  <div class="max-w-2xl mx-auto px-6 py-12">
+    <!-- 标题区 -->
+    <header class="mb-10 text-center">
+      <h1
+        class="text-4xl font-display font-bold tracking-widest mb-3"
+        style="color: var(--color-essays); text-shadow: 0 0 20px var(--color-essays);"
+      >
+        随笔散记
+      </h1>
+      <p class="text-sm tracking-widest" style="color: var(--color-text-muted);">
+        清新绿 · 时光信笺
+      </p>
+      {entries.length > 0 && (
+        <p class="text-xs mt-3" style="color: var(--color-text-muted);">
+          {entries.length} 封书信，静待展读
+        </p>
+      )}
+    </header>
+
+    <!-- 信纸信封列表 -->
+    <LetterStack entries={entries} client:load />
+  </div>
+</BaseLayout>

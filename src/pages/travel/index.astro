@@ -1,0 +1,77 @@
+---
+// src/pages/travel/index.astro
+// 旅行日记 —— 紫色浪漫 · 世界足迹
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../components/layout/BaseLayout.astro';
+import WorldMap from '../../components/travel/WorldMap';
+
+const rawTravel = await getCollection('travel', ({ data }) => !data.draft);
+
+const cities = rawTravel
+  .sort((a, b) => a.data.date.getTime() - b.data.date.getTime())
+  .map((entry) => ({
+    slug: entry.id.replace('/index', ''),
+    title: entry.data.title,
+    city: entry.data.city,
+    country: entry.data.country,
+    lat: entry.data.coordinates.lat,
+    lng: entry.data.coordinates.lng,
+    date: entry.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short' }),
+    cover: `https://picsum.photos/seed/${entry.id.replace('/index', '')}/400/200`,
+  }));
+---
+
+<BaseLayout title="旅行日记" description="浪漫与远方的召唤">
+  <div class="max-w-6xl mx-auto px-6 py-12">
+    <!-- 标题区 -->
+    <header class="mb-8 text-center">
+      <h1
+        class="text-4xl font-display font-bold tracking-widest mb-3"
+        style="color: var(--color-travel); text-shadow: 0 0 20px var(--color-travel);"
+      >
+        旅行日记
+      </h1>
+      <p class="text-sm tracking-widest" style="color: var(--color-text-muted);">
+        浪漫紫 · 世界足迹
+      </p>
+      {cities.length > 0 && (
+        <p class="text-xs mt-3" style="color: var(--color-text-muted);">
+          已点亮 {cities.length} 座城市
+        </p>
+      )}
+    </header>
+
+    <!-- 世界地图 -->
+    <WorldMap cities={cities} client:only="react" />
+
+    <!-- 底部城市列表 -->
+    <div class="mt-12">
+      <h2 class="text-sm font-medium mb-6 text-center tracking-widest" style="color: var(--color-text-muted);">
+        已探索的城市
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {cities.map((city) => (
+          <a
+            href={`/personal-site/travel/${city.slug}`}
+            class="flex items-center gap-3 p-4 rounded-xl transition-all duration-300
+                   hover:scale-[1.03] hover:translate-y-[-2px]"
+            style={{
+              backgroundColor: 'var(--color-cyber-card)',
+              border: '1px solid rgba(204,93,232,0.08)',
+            }}
+          >
+            <div class="text-2xl">📍</div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-medium truncate" style="color: var(--color-travel);">
+                {city.city}, {city.country}
+              </h3>
+              <p class="text-xs truncate" style="color: var(--color-text-muted);">
+                {city.title} · {city.date}
+              </p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</BaseLayout>

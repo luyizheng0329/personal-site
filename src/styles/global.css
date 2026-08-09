@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* ============================================================
+   色彩系统 —— CSS 自定义属性
+   ============================================================ */
+@theme {
+  /* 模块主色 */
+  --color-photos:   #ff6b6b;
+  --color-study:    #4dabf7;
+  --color-travel:   #cc5de8;
+  --color-food:     #ffd43b;
+  --color-essays:   #69db7c;
+  --color-love:     #f783ac;   /* [预留] 恋爱日记 */
+
+  /* 赛博朋克底色 */
+  --color-cyber-bg:     #0a0a0f;
+  --color-cyber-card:   #1a1a2e;
+  --color-cyber-dark:   #050508;
+  --color-cyber-glow:   rgba(255, 255, 255, 0.08);
+
+  /* 文字 */
+  --color-text-primary:   #e0e0e0;
+  --color-text-secondary: #888;
+  --color-text-muted:     #555;
+
+  /* 字体 */
+  --font-display: 'Orbitron', sans-serif;
+  --font-body:    'Noto Sans SC', sans-serif;
+  --font-letter:  'LXGW WenKai', serif;
+}
+
+/* ============================================================
+   全局基础样式
+   ============================================================ */
+body {
+  background-color: var(--color-cyber-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   通用光晕动画
+   ============================================================ */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes electric-flicker {
+  0%, 100% { opacity: 1; }
+  20%      { opacity: 0.3; }
+  40%      { opacity: 0.9; }
+  60%      { opacity: 0.2; }
+  80%      { opacity: 1; }
+}
+
+/* ============================================================
+   赛博朋克发光文字
+   ============================================================ */
+.text-glow {
+  text-shadow: 0 0 10px currentColor, 0 0 40px currentColor;
+}
+
+/* ============================================================
+   滚动条样式
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cyber-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ============================================================
+   响应式工具
+   ============================================================ */
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+/* 隐藏滚动条但可滚动 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 移动端点击高亮去除 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
